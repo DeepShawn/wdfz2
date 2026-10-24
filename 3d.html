@@ -4088,7 +4088,11 @@ function initInput(){
     if(PRO.on||S.screen!=='play') return;
     if(typeof endLook==='function') endLook();
     LOOKDRAG.on=false;
-    if(cv.requestPointerLock) cv.requestPointerLock();
+    if(cv.requestPointerLock){
+      /* 指针锁在某些状态下会 reject（没有焦点 / 刚切窗口 / 非安全上下文）。
+         这不影响游戏，静默掉，别弹红条。 */
+      try{ var _pl=cv.requestPointerLock(); if(_pl&&_pl.catch) _pl.catch(function(){}); }catch(e){}
+    }
   });
   var LOOK_PER_EVENT=160;               /* 单次事件最多按 160px 算 */
   document.addEventListener('mousemove',function(e){
@@ -6883,7 +6887,10 @@ try{
     showErr((e.message||'unknown')+'  @'+(e.filename||'')+':'+(e.lineno||0));
   });
   window.addEventListener('unhandledrejection',function(e){
-    var r=e&&e.reason; showErr('Promise: '+((r&&r.message)||r||'unknown'));
+    var r=e&&e.reason, msg=String((r&&r.message)||r||'unknown');
+    /* 这些是浏览器策略问题，不是游戏出错 */
+    if(/pointer lock|fullscreen|user gesture|NotAllowedError|SecurityError|AudioContext|play\(\)/i.test(msg)) return;
+    showErr('Promise: '+msg);
   });
 }catch(e){}
 
