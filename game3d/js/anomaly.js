@@ -212,7 +212,7 @@ function entFace(){
 }
 
 var HAS_FX={rain:1,moth:1,exercise:1,necker:1,twin:1,hand:1,shadow:1,
-  leak:1,rite:1,feast:1,lamps:1,chalk:1,roster:1,broad:1,repeat:1,shifting:1,cold:1,raindots:1};
+  leak:1,rite:1,feast:1,lamps:1,chalk:1,roster:1,broad:1,repeat:1,shifting:1,cold:1,raindots:1,stare:1};
 /* 选一个在玩家前方、站得住的点（世界单位） */
 function aheadPoint(dist){
   var a, k, tries=[0,0.6,-0.6,1.2,-1.2,PI];
@@ -268,27 +268,13 @@ function anHurt(msg,loss,opt){
   var k=(S.diff==='hard')?1.25:0.9;
   S.san=Math.max(0,S.san-loss*k);
   GLR.hurt=Math.max(GLR.hurt||0,0.65);
-  GLR.flash=Math.max(GLR.flash||0,0.25);
-  if(opt.face) try{ scareFace(); }catch(e){}
-  try{ SFX.sting&&SFX.sting(); }catch(e){}
+  if(!opt.quiet){                           /* quiet：不闪白、不加刺耳的音效，只留画面暗下去那一下 */
+    GLR.flash=Math.max(GLR.flash||0,0.25);
+    try{ SFX.sting&&SFX.sting(); }catch(e){}
+  }
   os(msg,4.4);
   if(S.san<=0&&!S.dead){ kill('你一直撑着的那根弦，断了。','vignette'); return; }
   if(!opt.keep) anEnd();
-}
-/* 一张苍白的脸贴到镜头前 0.4 秒 */
-function scareFace(){
-  if(GLR.scareM){ try{ GLR.cam.remove(GLR.scareM); }catch(e){} }
-  var g=new THREE.Group();
-  var skin=new THREE.MeshBasicMaterial({color:0xc8c0b2,fog:false,depthTest:false});
-  var dark=new THREE.MeshBasicMaterial({color:0x050607,fog:false,depthTest:false});
-  function bx(m,w,h,d,x,y,z){ var o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); o.renderOrder=1000; g.add(o); }
-  bx(skin,0.34,0.46,0.02,0,0,0);
-  bx(dark,0.08,0.05,0.01,-0.08,0.06,0.012);
-  bx(dark,0.08,0.05,0.01, 0.08,0.06,0.012);
-  bx(dark,0.14,0.10,0.01,0,-0.12,0.012);        /* 嘴张着 */
-  g.position.set(0,-0.02,-0.42);
-  GLR.cam.add(g); GLR.scareM=g;
-  setTimeout(function(){ try{ GLR.cam.remove(g); }catch(e){} if(GLR.scareM===g) GLR.scareM=null; },380);
 }
 /* 能躲雨的地方：屋里、柱廊下、车棚、连廊下 */
 function underCover(){
@@ -337,7 +323,7 @@ function anTick(dt){
         } else if(d.asked&&d.chosen===null&&AN.t>11){ d.chosen='no'; UI.closeChoice(); }
       }else if(d.chosen==='yes'){
         AN.acc+=dt;
-        if(AN.acc>0.5) anHurt('我回头了。它的脸离我只有一寸——没有五官，只有一层湿透的皮。下一秒，什么都没有了。肩膀上还是凉的。',26,{face:1});
+        if(AN.acc>0.5) anHurt('我回头了。它的脸离我只有一寸——没有五官，只有一层湿透的皮。下一秒，什么都没有了。肩膀上还是凉的。',26,{quiet:1});
       }else{
         AN.acc+=dt;
         if(AN.acc>=7.8){ S.san=Math.min(100,S.san+6); addClue('turn'); os('我：那只手慢慢松开了。我一直没有回头。',3.4); anEnd(); }
@@ -456,8 +442,9 @@ function anTick(dt){
       if(AN.t>18){ os('我：楼停下来了。整片校园里，只有钟楼一直没动——它在看着别的楼。',4.6); anEnd(); }
       break;
     case 'stare':
+      if(d.hit){ d.hitT+=dt; if(d.hitT>1.6) anEnd(); break; }   /* 墙上的眼睛全睁开，停一会儿再散 */
       if(!S.moving){ AN.acc+=dt; } else { AN.acc=Math.max(0,AN.acc-dt); }
-      if(AN.acc>1.8) anHurt('我站住了。于是全班一起站了起来，椅子腿在地上刮出同一声。然后他们又一起坐下。',18);
+      if(AN.acc>1.8){ d.hit=1; d.hitT=0; anHurt('我站住了。于是全班一起站了起来，椅子腿在地上刮出同一声。然后他们又一起坐下。',18,{keep:1}); }
       else if(AN.t>12){ os('我：他们慢慢地转回去了。最后转回去的，是我的同桌。',3.4); anEnd(); }
       break;
     case 'lamps':

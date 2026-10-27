@@ -82,6 +82,8 @@ function render(dt){
   GLR.fnNorm=GLR.fnNorm===undefined?0:GLR.fnNorm;
   GLR.fnNorm+= (_fnOn-GLR.fnNorm)*Math.min(1,dt*1.6);
   u.uFx.value=Math.max(GLR.fnNorm,(GLR.worldNorm||0),(GLRTEST.nofx?1:0));
+  GLR.gaze=(GLR.gaze||0)+((GLR.gazeT||0)-(GLR.gaze||0))*Math.min(1,dt*2.4);
+  u.uGaze.value=GLR.gaze;
   u.uHurt.value=GLR.hurt;
   u.uFlash.value=GLR.flash;
   u.uSan.value=clamp(S.san/100,0,1);
@@ -281,7 +283,7 @@ function freshState(diff){
   AN.id=null; AN.active=false; AN.next=(S.diff==='hard')?40:60; AN.rained=false; AN.cool={}; AN.lastBig=false; AN.t=0; AN.acc=0;
   AN.pre=null; AN.preNext=0; AN.locked=false; AN.lockWait=0;
   ROAM.on=false;
-  ENTS=[]; PAUSE.on=false;
+  ENTS=[]; PAUSE.on=false; document.body.classList.remove('paused');
   try{ NC.done=false; ncClear(); }catch(e){}
   try{ skipClear(); }catch(e){}
   try{ anfxClear(); }catch(e){}
@@ -338,7 +340,7 @@ var Game={
     if(AN.id){
       try{
         var HAS_FX2={rain:1,moth:1,exercise:1,necker:1,twin:1,hand:1,shadow:1,
-          leak:1,rite:1,feast:1,lamps:1,chalk:1,roster:1,broad:1,repeat:1,shifting:1,cold:1};
+          leak:1,rite:1,feast:1,lamps:1,chalk:1,roster:1,broad:1,repeat:1,shifting:1,cold:1,stare:1};
         if(HAS_FX2[AN.id]) anfxSpawn(AN.id,S.x,S.y);
       }catch(e){}
     }
@@ -359,10 +361,11 @@ var Game={
     }
     var el=document.getElementById('pause');
     el.style.display=PAUSE.on?'flex':'none';
+    document.body.classList.toggle('paused',PAUSE.on);   /* 字幕层级比面板高，暂停时先藏起来 */
     if(PAUSE.on&&document.exitPointerLock) document.exitPointerLock();
   },
   resume:function(){
-    PAUSE.on=false;
+    PAUSE.on=false; document.body.classList.remove('paused');
     var e1=document.getElementById('pause'); if(e1) e1.style.display='none';
     var e2=document.getElementById('set');   if(e2) e2.style.display='none';
     try{ UI.openPanel=null; }catch(e){}
